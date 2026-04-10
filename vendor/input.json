@@ -1,0 +1,64 @@
+{
+    "titulo": "PIEL GRASA",
+    "subtitle": "Controla el brillo y equilibra tu piel",
+    "manana": [
+        {
+            "title": "Limpieza profunda",
+            "description": "Usa un limpiador en gel o espuma con ácido salicílico.",
+            "icon": "cleanser",
+            "extra_info": "Elimina impurezas y controla sebo."
+        },
+        {
+            "title": "Tónico astringente",
+            "description": "Regula el pH y minimiza poros.",
+            "icon": "toner"
+        },
+        {
+            "title": "Sérum matificante",
+            "description": "Elige sérums con ingredientes como niacinamida o zinc.",
+            "icon": "serum"
+        },
+        {
+            "title": "Hidratante oil-free",
+            "description": "Controla la grasa mientras hidrata sin obstruir poros.",
+            "icon": "moisturizer"
+        },
+        {
+            "title": "Protector solar matificante",
+            "description": "Textura ligera y acabado mate.",
+            "icon": "sunscreen",
+            "extra_info": "¡Infaltable!"
+        }
+    ],
+    "noche": [
+        {
+            "title": "Doble limpieza",
+            "description": "Empieza con un limpiador oleoso y sigue con un limpiador en gel/de espuma.",
+            "icon": "double_cleanse",
+            "extra_info": "Remueve impurezas y sebo."
+        },
+        {
+            "title": "Tónico astringente",
+            "description": "Regula el pH y minimiza poros.",
+            "icon": "toner"
+        },
+        {
+            "title": "Tratamiento",
+            "description": "Exfoliante químico con ácido salicílico.",
+            "icon": "treatment",
+            "extra_info": "2-3 veces/semana"
+        },
+        {
+            "title": "Hidratante ligera",
+            "description": "Hidrata sin aportar grasa y regenera tu piel.",
+            "icon": "moisturizer"
+        }
+    ],
+    "extra_manana": [
+        "Mascarilla de arcilla",
+        "Arcilla verde (ideal para piel grasa)",
+        "Arcilla rosa (suave y calmante)"
+    ],
+    "extra_noche": [
+    ]
+}
