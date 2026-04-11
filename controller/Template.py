@@ -182,20 +182,15 @@ class Template:
         font    = self.config.template.font_family
         primary = self.config.template.primary_color
         bg      = self.config.template.background_color
+        product_image = self.data.get("product_image", "")
 
-        product_image = self.data.get(
-            "product_image",
-            "https://imgs.search.brave.com/xEkpKqqJmDTQ6LX9CYyT5eKloPHe2plP1aXdcANVuf4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cubWFpbGNsaWNrLmNvbS5teC93cC1jb250ZW50L3VwbG9hZHMvMjAyMS8wMy90ZXh0by1hbHRlcm5hdGl2by1jbXMtaHVic3BvdC1wYXNvLTEud2VicA"
-        )
-
-        # Rama superior izquierda (normal)
-        branch_top_left = self._branch_svg(
+        branch_tl = self._branch_svg(
             primary,
             transform="top:0; left:0; width:260px; height:220px; z-index:2;",
             opacity=0.9
         )
         # Rama inferior derecha (rotada 180°, espejada)
-        branch_bottom_right = self._branch_svg(
+        branch_br = self._branch_svg(
             primary,
             transform="bottom:0; right:0; width:180px; height:150px; z-index:2;",
             opacity=0.45
@@ -205,13 +200,12 @@ class Template:
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        * {{ margin:0; padding:0; box-sizing:border-box; }}
         body {{
             font-family: '{font}', Georgia, serif;
-            background-color: {bg};
+            background: {bg};
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -230,53 +224,47 @@ class Template:
         .img-half {{
             position: absolute;
             right: 0; top: 0;
-            width: 52%;
-            height: 100%;
+            width: 52%; height: 100%;
             clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
             z-index: 1;
         }}
-        .img-half img {{
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: block;
-        }}
-        /* Rama inferior derecha: girada 180° */
-        .branch-bottom-right svg {{
-            transform: rotate(180deg);
-        }}
+        .img-half img {{ width:100%; height:100%; object-fit:cover; display:block; }}
         .content {{
             position: relative;
             z-index: 3;
-            width: 55%;
-            height: 100%;
-            padding: 2.8rem 2.5rem 2rem 2.8rem;
+            width: 55%; height: 100%;
+            padding: 1.4rem 2rem 5rem 2.8rem;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
         }}
+        .spacer {{ height: 160px; flex-shrink: 0; }}
         .titulo {{
             font-size: 3rem;
             font-weight: 700;
             color: {primary};
-            line-height: 1.1;
-            margin-bottom: 1.2rem;
+            line-height: 1.08;
+            margin-bottom: 1.1rem;
         }}
         .descripcion {{
             font-family: 'Helvetica Neue', Arial, sans-serif;
             font-size: 0.95rem;
-            font-weight: 400;
-            color: #444444;
-            line-height: 1.7;
+            color: #444;
+            line-height: 1.75;
             max-width: 360px;
         }}
         .footer {{
+            position: absolute;
+            bottom: 1.8rem;
+            left: 2.8rem;
+            right: 48%;
             border-top: 1.5px solid #c8b89a;
-            padding-top: 0.9rem;
+            padding-top: 0.8rem;
             text-align: center;
         }}
         .eco-text {{
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 700;
             letter-spacing: 0.12em;
             color: {primary};
@@ -288,28 +276,21 @@ class Template:
 <body>
 <div class="card">
 
-    <!-- Imagen fondo mitad derecha con corte diagonal -->
     <div class="img-half">
         <img src="{product_image}" alt="{titulo}">
     </div>
 
-    <!-- Rama superior izquierda (SVG real del archivo) -->
-    {branch_top_left}
+    {branch_tl}
+    {branch_br}
 
-    <!-- Rama inferior derecha (SVG rotado 180°) -->
-    <div class="branch-bottom-right">
-        {branch_bottom_right}
+    <div class="content">
+        <div class="spacer"></div>
+        <h1 class="titulo">{titulo}</h1>
+        <p class="descripcion">{descripcion}</p>
     </div>
 
-    <!-- Texto principal -->
-    <div class="content">
-        <div>
-            <h1 class="titulo">{titulo}</h1>
-            <p class="descripcion">{descripcion}</p>
-        </div>
-        <div class="footer">
-            <p class="eco-text">{eco_text}</p>
-        </div>
+    <div class="footer">
+        <p class="eco-text">{eco_text}</p>
     </div>
 
 </div>
