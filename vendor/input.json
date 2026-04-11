@@ -1,6 +1,7 @@
 {
-    "titulo": "PIEL GRASA",
+    "titulo": "Jabón de Aloe Vera",
     "subtitle": "Controla el brillo y equilibra tu piel",
+    "descripcion": "Ideal para calmar irritaciones, previene el acné y acelera la cicatrización. Es suave y no irritante, ayuda a reducir manchas, mejorar la elasticidad y dejar la piel suave y radiante.",
     "manana": [
         {
             "title": "Limpieza profunda",
@@ -61,5 +62,5 @@
     ],
     "extra_noche": [
     ],
-    "product_image":"https://imgs.search.brave.com/xEkpKqqJmDTQ6LX9CYyT5eKloPHe2plP1aXdcANVuf4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/bWFpbGNsaWNrLmNv/bS5teC93cC1jb250/ZW50L3VwbG9hZHMv/MjAyMS8wMy90ZXh0/by1hbHRlcm5hdGl2/by1jbXMtaHVic3Bv/dC1wYXNvLTEud2Vi/cA"
+    "product_image":"https://lh3.googleusercontent.com/d/1NqifS5jGeCx8tmZK0Q3TCwSpzJTdqdK_"
 }

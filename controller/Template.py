@@ -175,14 +175,14 @@ class Template:
         </svg>"""
 
     def render(self) -> str:
-        titulo      = self._safe(self.data.get("titulo",      "Jabon Artesanal De Arroz"))
-        descripcion = self._safe(self.data.get("descripcion", "Ideal para aclarar y uniformar el tono de la piel. Rico en antioxidantes y vitamina B, ayuda a reducir manchas, mejorar la elasticidad y dejar la piel suave y radiante."))
-        eco_text    = self._safe(self.data.get("eco_text",    "100% NATURALES Y ECOLÓGICOS"))
+        titulo      = self._safe(self.data.get("titulo"))
+        descripcion = self._safe(self.data.get("descripcion"))
+        eco_text    = self._safe(self.data.get("eco_text", "100% NATURALES Y ECOLÓGICOS"))
 
         font    = self.config.template.font_family
         primary = self.config.template.primary_color
         bg      = self.config.template.background_color
-        product_image = self.data.get("product_image", "")
+        product_image = self.data.get("product_image")
 
         branch_tl = self._branch_svg(
             primary,
@@ -211,6 +211,7 @@ class Template:
                         align-items: center;
                         justify-content: center;
                         padding: 2rem;
+                        border-radius: 24px;
                     }}
                     .card {{
                         position: relative;
@@ -220,6 +221,7 @@ class Template:
                         border-radius: 20px;
                         overflow: hidden;
                         box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+                        border: 1.4px solid #d9c8a5ff;
                     }}
                     .img-half {{
                         position: absolute;
@@ -246,7 +248,10 @@ class Template:
                         flex-direction: column;
                         justify-content: flex-start;
                     }}
-                    .spacer {{ height: 160px; flex-shrink: 0; }}
+                    .spacer {{ 
+                        height: 200px; 
+                        flex-shrink: 0; 
+                    }}
                     .titulo {{
                         font-size: 3rem;
                         font-weight: 700;
@@ -282,31 +287,30 @@ class Template:
                 </style>
             </head>
             <body>
-            <div class="card">
+                <div class="card">
 
-                <div class="img-half">
-                    <img src="{product_image}" alt="{titulo}">
+                    <div class="img-half">
+                        <img src="{product_image}" alt="{titulo}">
+                    </div>
+
+                    <!-- Rama superior izquierda (SVG real del archivo) -->
+                    {branch_tl}
+
+                    <!-- Rama inferior derecha (SVG rotado 180°) -->
+                    <div class="branch-bottom-right">
+                        {branch_br}
+                    </div>
+
+                    <div class="content">
+                        <div class="spacer"></div>
+                        <h1 class="titulo">{titulo}</h1>
+                        <p class="descripcion">{descripcion}</p>
+                    </div>
+
+                    <div class="footer">
+                        <p class="eco-text">{eco_text}</p>
+                    </div>
                 </div>
-
-                <!-- Rama superior izquierda (SVG real del archivo) -->
-                {branch_tl}
-
-                <!-- Rama inferior derecha (SVG rotado 180°) -->
-                <div class="branch-bottom-right">
-                    {branch_br}
-                </div>
-
-                <div class="content">
-                    <div class="spacer"></div>
-                    <h1 class="titulo">{titulo}</h1>
-                    <p class="descripcion">{descripcion}</p>
-                </div>
-
-                <div class="footer">
-                    <p class="eco-text">{eco_text}</p>
-                </div>
-
-            </div>
             </body>
             </html>"""
         return html
