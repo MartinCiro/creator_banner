@@ -197,103 +197,116 @@ class Template:
         )
 
         html = f"""<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        * {{ margin:0; padding:0; box-sizing:border-box; }}
-        body {{
-            font-family: '{font}', Georgia, serif;
-            background: {bg};
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }}
-        .card {{
-            position: relative;
-            width: 900px;
-            height: 560px;
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-        }}
-        .img-half {{
-            position: absolute;
-            right: 0; top: 0;
-            width: 52%; height: 100%;
-            clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
-            z-index: 1;
-        }}
-        .img-half img {{ width:100%; height:100%; object-fit:cover; display:block; }}
-        .content {{
-            position: relative;
-            z-index: 3;
-            width: 55%; height: 100%;
-            padding: 1.4rem 2rem 5rem 2.8rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-        }}
-        .spacer {{ height: 160px; flex-shrink: 0; }}
-        .titulo {{
-            font-size: 3rem;
-            font-weight: 700;
-            color: {primary};
-            line-height: 1.08;
-            margin-bottom: 1.1rem;
-        }}
-        .descripcion {{
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 0.95rem;
-            color: #444;
-            line-height: 1.75;
-            max-width: 360px;
-        }}
-        .footer {{
-            position: absolute;
-            bottom: 1.8rem;
-            left: 2.8rem;
-            right: 48%;
-            border-top: 1.5px solid #c8b89a;
-            padding-top: 0.8rem;
-            text-align: center;
-        }}
-        .eco-text {{
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            color: {primary};
-            text-transform: uppercase;
-            line-height: 1.5;
-        }}
-    </style>
-</head>
-<body>
-<div class="card">
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
+                <style>
+                    * {{ margin:0; padding:0; box-sizing:border-box; }}
+                    body {{
+                        font-family: '{font}', Georgia, serif;
+                        background: {bg};
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 2rem;
+                    }}
+                    .card {{
+                        position: relative;
+                        width: 900px;
+                        height: 560px;
+                        background: #ffffff;
+                        border-radius: 20px;
+                        overflow: hidden;
+                        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+                    }}
+                    .img-half {{
+                        position: absolute;
+                        right: 0; top: 0;
+                        width: 52%; height: 100%;
+                        clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
+                        z-index: 1;
+                    }}
+                    .img-half img {{ 
+                        width:100%; height:100%; 
+                        object-fit:cover; 
+                        display:block; 
+                    }}
+                    /* Rama inferior derecha: girada 180° */
+                    .branch-bottom-right svg {{
+                        transform: rotate(180deg);
+                    }}
+                    .content {{
+                        position: relative;
+                        z-index: 3;
+                        width: 55%; height: 100%;
+                        padding: 1.4rem 2rem 5rem 2.8rem;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: flex-start;
+                    }}
+                    .spacer {{ height: 160px; flex-shrink: 0; }}
+                    .titulo {{
+                        font-size: 3rem;
+                        font-weight: 700;
+                        color: {primary};
+                        line-height: 1.08;
+                        margin-bottom: 1.1rem;
+                    }}
+                    .descripcion {{
+                        font-family: 'Helvetica Neue', Arial, sans-serif;
+                        font-size: 0.95rem;
+                        color: #444;
+                        line-height: 1.75;
+                        max-width: 360px;
+                    }}
+                    .footer {{
+                        position: absolute;
+                        bottom: 1.8rem;
+                        left: 2.8rem;
+                        right: 48%;
+                        border-top: 1.5px solid #c8b89a;
+                        padding-top: 0.8rem;
+                        text-align: center;
+                    }}
+                    .eco-text {{
+                        font-family: 'Helvetica Neue', Arial, sans-serif;
+                        font-size: 0.82rem;
+                        font-weight: 700;
+                        letter-spacing: 0.12em;
+                        color: {primary};
+                        text-transform: uppercase;
+                        line-height: 1.5;
+                    }}
+                </style>
+            </head>
+            <body>
+            <div class="card">
 
-    <div class="img-half">
-        <img src="{product_image}" alt="{titulo}">
-    </div>
+                <div class="img-half">
+                    <img src="{product_image}" alt="{titulo}">
+                </div>
 
-    {branch_tl}
-    {branch_br}
+                <!-- Rama superior izquierda (SVG real del archivo) -->
+                {branch_tl}
 
-    <div class="content">
-        <div class="spacer"></div>
-        <h1 class="titulo">{titulo}</h1>
-        <p class="descripcion">{descripcion}</p>
-    </div>
+                <!-- Rama inferior derecha (SVG rotado 180°) -->
+                <div class="branch-bottom-right">
+                    {branch_br}
+                </div>
 
-    <div class="footer">
-        <p class="eco-text">{eco_text}</p>
-    </div>
+                <div class="content">
+                    <div class="spacer"></div>
+                    <h1 class="titulo">{titulo}</h1>
+                    <p class="descripcion">{descripcion}</p>
+                </div>
 
-</div>
-</body>
-</html>"""
+                <div class="footer">
+                    <p class="eco-text">{eco_text}</p>
+                </div>
+
+            </div>
+            </body>
+            </html>"""
         return html
