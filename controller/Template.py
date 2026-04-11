@@ -9,8 +9,11 @@ class Template:
     def _safe(self, value: str) -> str:
         return escape(value or "")
 
-    def _branch_svg(self, primary: str, transform: str, opacity: float = 1.0) -> str:
+    def _branch_svg_url(self, primary: str, opacity: float = 1.0, rotate: bool = False) -> str:
+
         """Retorna el SVG de la rama con el color primario aplicado dinámicamente."""
+        import urllib.parse, re
+        rotate_attr = f"transform='rotate(180, 46, 35)'" if rotate else ""
         paths = """<path
        id="path101063"
        style="color:#000000;fill:#100c09;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:stroke fill markers"
@@ -166,13 +169,23 @@ class Template:
        d="m 44.147983,53.673144 c 0.01958,-1.030851 -0.633201,-3.295145 -1.255891,-4.553775"
        id="path109135"
        sodipodi:nodetypes="cc" />"""
-        paths = paths.replace("__PRIMARY__", primary).replace("NONE_PLACEHOLDER", "none")
-        return f"""<svg viewBox="0 0 92.644897 70.955803" xmlns="http://www.w3.org/2000/svg"
-                    style="position:absolute; {transform}; pointer-events:none; opacity:{opacity};">
-            <g transform="translate(6.4691908,-10.338102)">
-            {paths}
+        # 1. Eliminar atributos sodipodi e id que rompen el XML embebido
+        paths = re.sub(r'\s+sodipodi:[^=]+="[^"]*"', '', paths)
+        paths = re.sub(r'\s+id="[^"]*"', '', paths)
+
+        # 2. Reemplazar el color hardcodeado por el color primario en todos los estilos
+        paths = re.sub(r'stroke:#[0-9a-fA-F]{3,6}', f'stroke:{primary}', paths)
+        paths = re.sub(r'fill:#[0-9a-fA-F]{3,6}', f'fill:{primary}', paths)
+        # Restaurar fill:none que no debe cambiar
+        paths = paths.replace(f'fill:{primary};fill-opacity:1', 'fill:none;fill-opacity:1')
+
+        svg = f"""<svg viewBox="0 0 92.644897 70.955803" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(6.4691908,-10.338102)" {rotate_attr} opacity="{opacity}">
+                {paths}
             </g>
         </svg>"""
+
+        return "data:image/svg+xml," + urllib.parse.quote(svg)
 
     def render(self) -> str:
         titulo      = self._safe(self.data.get("titulo"))
@@ -183,134 +196,146 @@ class Template:
         primary = self.config.template.primary_color
         bg      = self.config.template.background_color
         product_image = self.data.get("product_image")
+        color_img = "#6b2348"
 
-        branch_tl = self._branch_svg(
-            primary,
-            transform="top:0; left:0; width:260px; height:220px; z-index:2;",
+        branch_tl_url = self._branch_svg_url(
+            color_img,
             opacity=0.9
         )
         # Rama inferior derecha (rotada 180°, espejada)
-        branch_br = self._branch_svg(
-            primary,
-            transform="bottom:0; right:0; width:180px; height:150px; z-index:2;",
-            opacity=0.45
+        branch_br_url = self._branch_svg_url(
+            color_img,
+            opacity=0.45,
+            rotate=True
         )
 
         html = f"""<!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
-                <style>
-                    * {{ margin:0; padding:0; box-sizing:border-box; }}
-                    body {{
-                        font-family: '{font}', Georgia, serif;
-                        background: {bg};
-                        min-height: 100vh;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 2rem;
-                        border-radius: 24px;
-                    }}
-                    .card {{
-                        position: relative;
-                        width: 900px;
-                        height: 560px;
-                        background: #ffffff;
-                        border-radius: 20px;
-                        overflow: hidden;
-                        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-                        border: 1.4px solid #d9c8a5ff;
-                    }}
-                    .img-half {{
-                        position: absolute;
-                        right: 0; top: 0;
-                        width: 52%; height: 100%;
-                        clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
-                        z-index: 1;
-                    }}
-                    .img-half img {{ 
-                        width:100%; height:100%; 
-                        object-fit:cover; 
-                        display:block; 
-                    }}
-                    /* Rama inferior derecha: girada 180° */
-                    .branch-bottom-right svg {{
-                        transform: rotate(180deg);
-                    }}
-                    .content {{
-                        position: relative;
-                        z-index: 3;
-                        width: 55%; height: 100%;
-                        padding: 1.4rem 2rem 5rem 2.8rem;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: flex-start;
-                    }}
-                    .spacer {{ 
-                        height: 200px; 
-                        flex-shrink: 0; 
-                    }}
-                    .titulo {{
-                        font-size: 3rem;
-                        font-weight: 700;
-                        color: {primary};
-                        line-height: 1.08;
-                        margin-bottom: 1.1rem;
-                    }}
-                    .descripcion {{
-                        font-family: 'Helvetica Neue', Arial, sans-serif;
-                        font-size: 0.95rem;
-                        color: #444;
-                        line-height: 1.75;
-                        max-width: 360px;
-                    }}
-                    .footer {{
-                        position: absolute;
-                        bottom: 1.8rem;
-                        left: 2.8rem;
-                        right: 48%;
-                        border-top: 1.5px solid #c8b89a;
-                        padding-top: 0.8rem;
-                        text-align: center;
-                    }}
-                    .eco-text {{
-                        font-family: 'Helvetica Neue', Arial, sans-serif;
-                        font-size: 0.82rem;
-                        font-weight: 700;
-                        letter-spacing: 0.12em;
-                        color: {primary};
-                        text-transform: uppercase;
-                        line-height: 1.5;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="card">
-
-                    <div class="img-half">
-                        <img src="{product_image}" alt="{titulo}">
-                    </div>
-
-                    <!-- Rama superior izquierda (SVG real del archivo) -->
-                    {branch_tl}
-
-                    <!-- Rama inferior derecha (SVG rotado 180°) -->
-                    <div class="branch-bottom-right">
-                        {branch_br}
-                    </div>
-
-                    <div class="content">
-                        <div class="spacer"></div>
-                        <h1 class="titulo">{titulo}</h1>
-                        <p class="descripcion">{descripcion}</p>
-                    </div>
-
-                    <div class="footer">
-                        <p class="eco-text">{eco_text}</p>
-                    </div>
-                </div>
-            </body>
-            </html>"""
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+                * {{ margin:0; padding:0; box-sizing:border-box; }}
+                body {{
+                    font-family: '{font}', Georgia, serif;
+                    background: {bg};
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0; 
+                    box-sizing:border-box;
+                    overflow-x: hidden;
+                }}
+                .wrapper {{
+                    position: relative;
+                    width: 100%;
+                    height: 560px;
+                    border-radius: 20px;
+                    overflow: hidden;             
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+                    border: 1.4px solid #d9c8a5;
+                    background-color: #ffffff;
+                }}
+                /* Rama TL: pseudo-elemento del wrapper, DENTRO del overflow:hidden */
+                .wrapper::before {{
+                    content: '';
+                    position: absolute;
+                    top: -40px;
+                    width: 340px;
+                    height: 290px;
+                    background-image: url("{branch_tl_url}");
+                    background-repeat: no-repeat;
+                    background-size: 100% 100%;
+                    z-index: 3;
+                    pointer-events: none;
+                }}
+                /* Rama BR: segundo pseudo-elemento */
+                .wrapper::after {{
+                    content: '';
+                    position: absolute;
+                    bottom: -20px;
+                    right: -15px;
+                    width: 230px;
+                    height: 190px;
+                    background-image: url("{branch_br_url}");
+                    background-repeat: no-repeat;
+                    background-size: 100% 100%;
+                    z-index: 3;
+                    pointer-events: none;
+                }}
+                .img-half {{
+                    position: absolute;
+                    right: 0; top: 0;
+                    width: 52%; height: 100%;
+                    clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
+                    z-index: 1;
+                }}
+                .img-half img {{
+                    width:100%; height:100%;
+                    object-fit:cover;
+                    display:block;
+                }}
+                .content {{
+                    position: relative;
+                    z-index: 2;
+                    width: 55%; height: 100%;
+                    padding: 1.4rem 2rem 5rem 2.8rem;
+                    display: flex;
+                    flex-direction: column;
+                }}
+                .spacer {{
+                    height: 200px;
+                    flex-shrink: 0;
+                }}
+                .titulo {{
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: {primary};
+                    line-height: 1.08;
+                    margin-bottom: 1.1rem;
+                }}
+                .descripcion {{
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 0.95rem;
+                    color: #444;
+                    line-height: 1.75;
+                    max-width: 360px;
+                }}
+                .footer {{
+                    position: absolute;
+                    bottom: 1.8rem;
+                    left: 2.8rem;
+                    right: 48%;
+                    border-top: 1.5px solid #c8b89a;
+                    padding-top: 0.8rem;
+                    text-align: center;
+                }}
+                .eco-text {{
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 0.82rem;
+                    font-weight: 700;
+                    letter-spacing: 0.12em;
+                    color: {primary};
+                    text-transform: uppercase;
+                    line-height: 1.5;
+                }}
+            </style>
+        </head>
+        <body>
+        <div class="wrapper">
+            <div class="img-half">
+                <img src="{product_image}" alt="{titulo}">
+            </div>
+            <div class="content">
+                <div class="spacer"></div>
+                <h1 class="titulo">{titulo}</h1>
+                <p class="descripcion">{descripcion}</p>
+            </div>
+            <div class="footer">
+                <p class="eco-text">{eco_text}</p>
+            </div>
+        </div>
+        </body>
+        </html>"""
         return html
