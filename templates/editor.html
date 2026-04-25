@@ -522,7 +522,7 @@
       }
 
       async function handleExport() {
-        const productName = document.getElementById('image-name-input')?.value.trim();
+        const productName = imageNameInput?.value.trim();
         const description = document.getElementById('notes-textarea')?.value.trim();
 
         // Obtener la imagen del canvas
@@ -542,7 +542,7 @@
             })
           });
 
-          const data = await response.json();  // ✅ await aquí
+          const data = await response.json(); 
 
           if (data.success && data.image_base64) {
             const a = document.createElement('a');

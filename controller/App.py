@@ -1,5 +1,3 @@
-# controller/App.py
-
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -7,15 +5,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from controller.BackgroundRemoverAPI import router as bg_router
 from uvicorn import run as uv_run
-from re import compile, IGNORECASE
+from re import compile, IGNORECASE, sub
 from base64 import b64encode
 
-import logging
+from logging import basicConfig, getLogger, INFO
 
 # Configurar logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+basicConfig(level=INFO)
+logger = getLogger(__name__)
 
 class DescriptionRequest(BaseModel):
     name: str
@@ -61,7 +58,7 @@ class App:
         
         # Configurar rutas
         self._setup_routes()
-        
+ 
     def _setup_routes(self):
         """Configura todas las rutas de la aplicación"""
         
@@ -129,15 +126,19 @@ class App:
                     "descripcion": request.descripcion,
                     "product_image": request.product_image
                 }
+                
                 # Generar HTML desde el template
                 html = self.template_generator.render(data)
-
+                print("132")
                 # Renderizar a bytes en lugar de archivo
                 image_bytes = await self.renderer.html_to_png_bytes_async(html)
-                
+                print("135")
+                await self.renderer.html_to_png_async(html, "/app/static/a.png")
+                print("137")
+
                 # Convertir a base64
                 image_base64 = b64encode(image_bytes).decode("utf-8")
-                
+                print("141")
                 return JSONResponse({
                     "success": True,
                     "image_base64": f"data:image/png;base64,{image_base64}",

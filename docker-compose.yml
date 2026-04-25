@@ -25,8 +25,8 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - RENDER_WIDTH=${RENDER_WIDTH:-920}
-      - RENDER_HEIGHT=${RENDER_HEIGHT:-380}
+      - RENDER_WIDTH=${RENDER_WIDTH}
+      - RENDER_HEIGHT=${RENDER_HEIGHT}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

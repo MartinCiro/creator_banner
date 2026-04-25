@@ -53,17 +53,18 @@ class GeminiClient:
         try:
             prompt_completo = self.base_prompt + f'"{self.nombre_jabon}"'
             
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt_completo,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                    max_output_tokens=500,
-                )
-            )
+            # response = self.client.models.generate_content(
+            #     model=self.model_name,
+            #     contents=prompt_completo,
+            #     config=types.GenerateContentConfig(
+            #         temperature=0.7,
+            #         max_output_tokens=500,
+            #     )
+            # )
             
             # 🧹 LIMPIEZA: Extraer solo el texto útil
-            descripcion = self._limpiar_respuesta(response.text.strip())
+            #descripcion = self._limpiar_respuesta(response.text.strip())
+            descripcion = self._limpiar_respuesta(prompt_completo.text.strip())
             
             # Validación de longitud
             if len(descripcion) < 150:
@@ -74,7 +75,6 @@ class GeminiClient:
             return self._limpiar_respuesta(descripcion)
             
         except Exception as e:
-            print(f"⚠️ Error generando descripción con Gemini: {e}")
             return self._descripcion_fallback()
     
     def _expandir_descripcion(self, descripcion_corta: str) -> str:
@@ -85,11 +85,12 @@ class GeminiClient:
             Por favor, expándela a unos 200 caracteres manteniendo el mismo estilo profesional.
             Jabón: {self.nombre_jabon}
             """
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt_expandir
-            )
-            return response.text.strip()
+            # response = self.client.models.generate_content(
+            #     model=self.model_name,
+            #     contents=prompt_expandir
+            # )
+            #return response.text.strip()
+            return prompt_expandir.strip()
         except:
             return self._descripcion_fallback()
     

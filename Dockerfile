@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias para rembg, Playwright y Pillow
+# 🔹 Instalar dependencias del sistema + FUENTES + configuración headless
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Para rembg y Pillow
     libgl1 \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender1 \
     libgomp1 \
-    # Para Playwright (Chromium)
+    # Para Playwright (Chromium) - libs base
     libnss3 \
     libatk-bridge2.0-0 \
     libdrm2 \
@@ -23,11 +23,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr2 \
     libgbm1 \
     libasound2 \
+    # 🔹 FUENTES para renderizado de texto (CRÍTICO)
+    fonts-dejavu-core \
+    fonts-liberation \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fontconfig \
     # Utilitarios
     wget \
     curl \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # 🔹 Reconstruir cache de fuentes (CRÍTICO)
+    && fc-cache -fv
 
 # Copiar requirements.txt primero (mejor caché)
 COPY requirements.txt .
@@ -50,5 +58,5 @@ RUN mkdir -p logs static templates
 # ✅ EXPONER el puerto
 EXPOSE 8000
 
-# ✅ AÑADIR el CMD (asumiendo que usas FastAPI/uvicorn)
+# ✅ CMD con configuración para entorno headless
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

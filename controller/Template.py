@@ -1,5 +1,6 @@
 # controller/Template.py
 from html import escape
+import urllib.parse
 
 class Template:
     def __init__(self, config):
@@ -189,7 +190,7 @@ class Template:
     def render(self, data: dict) -> str:
         """Recibe los datos como parámetro y genera el HTML"""
         
-        titulo = self._safe(data.get("titulo") or data.get("nombre", ""))
+        titulo = self._safe(data.get("nombre", ""))
         descripcion = self._safe(data.get("descripcion", ""))
         eco_text = self._safe(data.get("eco_text", "100% NATURALES Y ECOLÓGICOS"))
 
@@ -201,16 +202,17 @@ class Template:
 
         branch_tl_url = self._branch_svg_url(color_img, opacity=0.9)
         branch_br_url = self._branch_svg_url(color_img, opacity=0.45, rotate=True)
+        font_encoded = urllib.parse.quote(font)
 
         html = f"""<!DOCTYPE html>
         <html lang="es">
         <head>
             <meta charset="UTF-8">
-            <link href="https://fonts.googleapis.com/css2?family={font}:wght@400;700&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family={font_encoded}:wght@400;700&display=swap" rel="stylesheet">
             <style>
                 * {{ margin:0; padding:0; box-sizing:border-box; }}
                 body {{
-                    font-family: '{font}', Georgia, serif;
+                    font-family: '{font}', Georgia, serif, sans-serif; 
                     background: {bg};
                     min-height: 100vh;
                     display: flex;
@@ -219,6 +221,8 @@ class Template:
                     margin: 0; 
                     box-sizing:border-box;
                     overflow-x: hidden;
+                    -webkit-font-smoothing: antialiased;
+                    -moz-osx-font-smoothing: grayscale;
                 }}
                 .wrapper {{
                     position: relative;
@@ -267,6 +271,7 @@ class Template:
                     object-fit:cover;
                     display:block;
                 }}
+                
                 .content {{
                     position: relative;
                     z-index: 2;
@@ -275,10 +280,12 @@ class Template:
                     display: flex;
                     flex-direction: column;
                 }}
+
                 .spacer {{
                     height: 200px;
                     flex-shrink: 0;
                 }}
+
                 .titulo {{
                     font-size: 3rem;
                     font-weight: 700;
@@ -286,6 +293,7 @@ class Template:
                     line-height: 1.08;
                     margin-bottom: 1.1rem;
                 }}
+
                 .descripcion {{
                     font-family: 'Helvetica Neue', Arial, sans-serif;
                     font-size: 0.95rem;
@@ -293,6 +301,7 @@ class Template:
                     line-height: 1.75;
                     max-width: 360px;
                 }}
+
                 .footer {{
                     position: absolute;
                     bottom: 1.8rem;
@@ -302,6 +311,7 @@ class Template:
                     padding-top: 0.8rem;
                     text-align: center;
                 }}
+
                 .eco-text {{
                     font-family: 'Helvetica Neue', Arial, sans-serif;
                     font-size: 0.82rem;
@@ -310,6 +320,12 @@ class Template:
                     color: {primary};
                     text-transform: uppercase;
                     line-height: 1.5;
+                }}
+
+                @font-face {{
+                    font-family: '{font}';
+                    src: local('DejaVu Sans'), local('Arial');
+                    font-display: swap;
                 }}
             </style>
         </head>

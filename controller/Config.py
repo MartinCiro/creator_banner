@@ -1,5 +1,3 @@
-# controller/Config.py
-
 from dotenv import load_dotenv
 from os import getenv
 from dataclasses import dataclass
@@ -28,17 +26,24 @@ class Config:
     def __init__(self):
         load_dotenv()
 
-        # 🔹 Render settings (Playwright)
+        # 🔹 Render settings (Playwright) - Manejar valores vacíos
+        width_str = getenv("RENDER_WIDTH", "1024")
+        height_str = getenv("RENDER_HEIGHT", "1536")
+        
+        # Si la variable existe pero está vacía, usar el valor por defecto
+        width_val = width_str if width_str and width_str.strip() else "1024"
+        height_val = height_str if height_str and height_str.strip() else "1536"
+        
         self.render = RenderConfig(
-            width=int(getenv("RENDER_WIDTH", "1024")),
-            height=int(getenv("RENDER_HEIGHT", "1536")),
+            width=int(width_val),
+            height=int(height_val),
             output_dir=getenv("OUTPUT_DIR", "./output/images")
         )
 
         # 🔹 Template settings (UI)
         self.template = TemplateConfig(
             font_family=getenv("FONT_FAMILY", "Montserrat"),
-            primary_color=getenv("PRIMARY_COLOR", "#ec4899"),  # pink-500
+            primary_color=getenv("PRIMARY_COLOR", "#ec4899"),
             background_color=getenv("BG_COLOR", "#fdf6f6")
         )
 
