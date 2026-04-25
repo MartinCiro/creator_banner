@@ -2,9 +2,8 @@
 from html import escape
 
 class Template:
-    def __init__(self, config, dict):
+    def __init__(self, config):
         self.config = config
-        self.data = dict
 
     def _safe(self, value: str) -> str:
         return escape(value or "")
@@ -187,27 +186,21 @@ class Template:
 
         return "data:image/svg+xml," + urllib.parse.quote(svg)
 
-    def render(self) -> str:
-        titulo      = self._safe(self.data.get("titulo"))
-        descripcion = self._safe(self.data.get("descripcion"))
-        eco_text    = self._safe(self.data.get("eco_text", "100% NATURALES Y ECOLÓGICOS"))
+    def render(self, data: dict) -> str:
+        """Recibe los datos como parámetro y genera el HTML"""
+        
+        titulo = self._safe(data.get("titulo") or data.get("nombre", ""))
+        descripcion = self._safe(data.get("descripcion", ""))
+        eco_text = self._safe(data.get("eco_text", "100% NATURALES Y ECOLÓGICOS"))
 
-        font    = self.config.template.font_family
+        font = self.config.template.font_family
         primary = self.config.template.primary_color
-        bg      = self.config.template.background_color
-        product_image = self.data.get("product_image")
+        bg = self.config.template.background_color
+        product_image = data.get("product_image")
         color_img = "#6b2348"
 
-        branch_tl_url = self._branch_svg_url(
-            color_img,
-            opacity=0.9
-        )
-        # Rama inferior derecha (rotada 180°, espejada)
-        branch_br_url = self._branch_svg_url(
-            color_img,
-            opacity=0.45,
-            rotate=True
-        )
+        branch_tl_url = self._branch_svg_url(color_img, opacity=0.9)
+        branch_br_url = self._branch_svg_url(color_img, opacity=0.45, rotate=True)
 
         html = f"""<!DOCTYPE html>
         <html lang="es">
@@ -237,7 +230,6 @@ class Template:
                     border: 1.4px solid #d9c8a5;
                     background-color: #ffffff;
                 }}
-                /* Rama TL: pseudo-elemento del wrapper, DENTRO del overflow:hidden */
                 .wrapper::before {{
                     content: '';
                     position: absolute;
@@ -250,7 +242,6 @@ class Template:
                     z-index: 3;
                     pointer-events: none;
                 }}
-                /* Rama BR: segundo pseudo-elemento */
                 .wrapper::after {{
                     content: '';
                     position: absolute;

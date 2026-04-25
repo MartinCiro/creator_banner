@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BG Remover</title>
+  <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss-with-all-plugins.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] },
+          colors: { ink: '#0e0e0e', paper: '#f5f3ee', accent: '#00c896', dim: '#2a2a2a' }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/st.css">
+  <link rel="shortcut icon" href="/static/icon.png" type="image/x-icon">
+</head>
+
+<body class="min-h-screen text-white bg-ink overflow-x-hidden">
+
+  <div id="toast"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-sm font-mono bg-dim border border-white/10 max-w-[90vw] text-center">
+  </div>
+
+  <!-- Header -->
+  <header
+    class="border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 bg-ink/95 backdrop-blur-sm z-20">
+    <!-- Logo izquierdo - fixed width -->
+    <div class="flex items-center gap-3 w-32">
+      <div class="w-2 h-2 rounded-full bg-accent"></div>
+      <span class="text-sm font-semibold tracking-widest uppercase text-white/90">BG Remover</span>
+      <span class="tag hidden sm:inline">FastAPI + rembg</span>
+    </div>
+
+    <!-- Input centrado - ocupa espacio flexible pero contenido centrado -->
+    <div class="flex-1 flex justify-center">
+      <div class="relative hidden" id="image-name-container">
+        <input type="text" id="image-name-input"
+          class="bg-dim/50 border border-white/20 rounded-lg px-3 py-1.5 text-sm font-mono text-white/80 focus:border-accent focus:outline-none transition-all w-48 text-center"
+          placeholder="nombre.png" />
+      </div>
+    </div>
+
+    <!-- Elementos derecha - fixed width -->
+    <div class="flex items-center gap-3 w-32 justify-end">
+      <div id="status-bar" class="flex items-center gap-1 text-xs text-white/30">
+        <svg id="status-icon" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" stroke-width="2" />
+        </svg>
+      </div>
+      <button id="btn-export-nav"
+        class="hidden touch-target p-2 rounded-lg text-white/50 hover:text-accent hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+        title="Guardar imagen (Ctrl+S)" disabled>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-57px)]">
+    <!-- Contenedor principal (sin sidebar) -->
+    <main class="flex-1 flex items-center justify-center p-2 sm:p-6 overflow-hidden relative" id="canvas-wrap">
+      <!-- Estado vacío -->
+      <div id="empty-state" class="text-center px-4">
+        <svg class="mx-auto w-12 h-12 sm:w-16 sm:h-16 text-white/20 mb-3" fill="none" stroke="currentColor"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        <p class="text-white/40 text-sm">Arrastra una imagen o toca para comenzar</p>
+      </div>
+
+      <!-- Contenedor de canvas -->
+      <div id="canvas-container" class="hidden relative shadow-2xl rounded-lg overflow-hidden touch-none"
+        style="background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; background-color: #111;">
+        <canvas id="canvas-main" class="block max-w-full max-h-full"></canvas>
+        <canvas id="canvas-original" class="hidden"></canvas>
+        <canvas id="canvas-mask" class="hidden"></canvas>
+      </div>
+
+      <!-- Controles de zoom -->
+      <div id="zoom-controls" class="zoom-controls hidden">
+        <button id="zoom-out" class="zoom-btn" title="Zoom out (-)">−</button>
+        <span id="zoom-level" class="zoom-level">100%</span>
+        <button id="zoom-in" class="zoom-btn" title="Zoom in (+)">+</button>
+        <button id="zoom-reset" class="zoom-btn reset-zoom" title="Reset zoom">Reset</button>
+        <button id="rotate-btn" class="zoom-btn" title="Rotar 45°">↻</button>
+      </div>
+
+      <!-- Botón reemplazar imagen -->
+      <button id="btn-replace-image"
+        class="hidden fixed z-30 px-4 py-2 bg-dim/90 backdrop-blur-sm border border-white/10 rounded-lg text-xs font-mono text-white/80 hover:text-white hover:border-accent/50 transition-all shadow-lg touch-target"
+        style="top: 80px; right: 16px;" title="Reemplazar imagen">
+        <span class="hidden sm:inline">🔄 Reemplazar imagen</span>
+        <span class="sm:hidden">🔄</span>
+      </button>
+
+      <!-- Controles flotantes de pincel (solo desktop) -->
+      <div id="brush-controls-floating"
+        class="hidden fixed z-30 flex flex-col gap-2 bg-dim/90 backdrop-blur-sm border border-white/10 rounded-lg p-3 shadow-lg"
+        style="top: 130px; right: 16px; min-width: 180px;">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono text-white/60">Pincel</span>
+          <span class="text-xs font-mono text-accent" id="brush-size-label-float">30px</span>
+        </div>
+        <input id="brush-size-float" type="range" min="10" max="100" value="30" step="10"
+          class="w-full accent-accent cursor-pointer" />
+        <div class="flex gap-1">
+          <button id="tool-add-float" class="btn btn-ghost flex-1 text-[10px] py-1 px-2" title="Añadir (A)">
+            + Añadir
+          </button>
+          <button id="tool-erase-float" class="btn btn-ghost flex-1 text-[10px] py-1 px-2" title="Borrar (E)">
+            − Borrar
+          </button>
+        </div>
+        <!-- Historial (desktop) -->
+        <section class="p-4 border-b border-white/5">
+          <div class="flex gap-2">
+            <button id="btn-undo" class="btn btn-ghost flex-1 text-xs touch-target" title="Ctrl+Z">↩</button>
+            <button id="btn-redo" class="btn btn-ghost flex-1 text-xs touch-target" title="Ctrl+Y">↪</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Barra de herramientas flotante móvil (5 elementos) -->
+      <div class="mobile-only fixed bottom-4 left-4 right-4 z-10">
+        <div class="bg-dim/90 backdrop-blur-sm rounded-xl border border-white/10 p-2 flex items-center gap-2">
+          <button id="mobile-undo"
+            class="btn btn-ghost touch-target w-10 h-10 p-0 flex items-center justify-center text-lg"
+            title="Deshacer">↩</button>
+          <button id="mobile-tool-add"
+            class="btn btn-ghost touch-target w-10 h-10 p-0 flex items-center justify-center text-lg font-bold"
+            title="Añadir">+</button>
+          <div class="flex-1 flex items-center gap-2">
+            <input id="mobile-brush-size" type="range" min="10" max="100" value="30" step="10"
+              class="flex-1 accent-accent cursor-pointer" />
+            <span id="mobile-brush-label" class="text-xs font-mono text-accent min-w-[35px] text-center">30px</span>
+          </div>
+          <button id="mobile-tool-erase"
+            class="btn btn-ghost touch-target w-10 h-10 p-0 flex items-center justify-center text-lg font-bold"
+            title="Borrar">−</button>
+          <button id="mobile-redo"
+            class="btn btn-ghost touch-target w-10 h-10 p-0 flex items-center justify-center text-lg"
+            title="Rehacer">↪</button>
+        </div>
+      </div>
+
+      <!-- Cursor del pincel (solo desktop) -->
+      <div id="brush-cursor" class="pointer-events-none fixed z-50 hidden md:block"
+        style="border: 2px solid #00c896; border-radius: 50%; transform: translate(-50%, -50%); mix-blend-mode: difference;">
+      </div>
+      <div id="notes-overlay" class="fixed inset-0 bg-black/50 z-25 hidden transition-opacity" style="display: none;">
+      </div>
+    </main>
+
+    <!-- Panel de notas lateral -->
+    <div id="notes-panel" class="fixed z-30 transition-all duration-300">
+      <!-- Botón toggle para escritorio -->
+      <button id="notes-toggle-desktop"
+        class="desktop-only absolute z-50 bg-dim/90 backdrop-blur-sm border border-white/10 rounded-lg p-2 hover:border-accent/50 transition-all shadow-lg"
+        style="left: -18px; top: 50%; transform: translateY(-50%);">
+        <span id="toggle-icon-desktop" class="text-white/80 text-sm font-mono">&lt;</span>
+      </button>
+
+      <!-- Contenido del panel -->
+      <div id="notes-content"
+        class="bg-dim/95 backdrop-blur-md border-r border-white/10 shadow-2xl transition-all duration-300 overflow-hidden"
+        style="width: 0px; height: 100%;">
+        <div class="p-4 h-full flex flex-col">
+          <div class="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
+            <span class="text-xs font-mono text-accent uppercase tracking-wider">Notas</span>
+            <button id="notes-close-desktop" class="desktop-only text-white/40 hover:text-white transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <textarea id="notes-textarea"
+            class="flex-1 w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white/80 font-mono text-sm resize focus:border-accent focus:outline-none transition-all"
+            placeholder="Escribe tus notas aquí..."></textarea>
+          <div class="mt-2 text-right">
+            <span class="text-xs text-white/30 font-mono" id="notes-char-count">0 caracteres</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón toggle para móvil (debajo de zoom controls) -->
+    <button id="notes-toggle-mobile"
+      class="mobile-only fixed z-40 bg-dim/90 backdrop-blur-sm border border-white/10 rounded-lg w-10 h-10 p-0 flex items-center justify-center transition-all shadow-lg active:scale-95"
+      style="top: 72px; left: 12px;" title="Notas">
+      <svg id="toggle-icon-mobile" class="w-5 h-5 text-white/80 transition-transform duration-300" fill="none"
+        stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+
+  </div>
+
+  <!-- Elementos ocultos para carga de archivos (drag & drop programático) -->
+  <div id="drop-zone" class="hidden">
+    <input id="file-input" type="file" accept="image/*" class="hidden" />
+  </div>
+
+  <script src="/static/a.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Referencias DOM
+      const emptyState = document.getElementById('empty-state');
+      const canvasContainer = document.getElementById('canvas-container');
+      const canvasOriginal = document.getElementById('canvas-original');
+      const canvasMask = document.getElementById('canvas-mask');
+      const canvasMain = document.getElementById('canvas-main');
+      if (!canvasOriginal || !canvasMask || !canvasMain) return;
+
+      const btnReplace = document.getElementById('btn-replace-image');
+      const canvasWrap = document.getElementById('canvas-wrap');
+      const brushControlsFloat = document.getElementById('brush-controls-floating');
+      const brushSizeFloat = document.getElementById('brush-size-float');
+      const brushSizeLabelFloat = document.getElementById('brush-size-label-float');
+      const toolAddFloat = document.getElementById('tool-add-float');
+      const toolEraseFloat = document.getElementById('tool-erase-float');
+
+      // Móvil
+      const mobileBrushSize = document.getElementById('mobile-brush-size');
+      const mobileBrushLabel = document.getElementById('mobile-brush-label');
+      const mobileToolAdd = document.getElementById('mobile-tool-add');
+      const mobileToolErase = document.getElementById('mobile-tool-erase');
+
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+
+      const imageNameContainer = document.getElementById('image-name-container');
+      const imageNameInput = document.getElementById('image-name-input');
+
+
+      const zoomControls = document.getElementById('zoom-controls');
+      const btnExportNav = document.getElementById('btn-export-nav');
+      //const btnExport = document.getElementById('btn-export');
+      const statusIcon = document.getElementById('status-icon');
+
+      // Historial (desktop y móvil)
+      const btnUndo = document.getElementById('btn-undo');
+      const btnRedo = document.getElementById('btn-redo');
+      const mobileUndo = document.getElementById('mobile-undo');
+      const mobileRedo = document.getElementById('mobile-redo');
+
+      const rotateBtn = document.getElementById('rotate-btn');
+
+      const notesPanel = document.getElementById('notes-panel');
+      const notesContent = document.getElementById('notes-content');
+      const notesTextarea = document.getElementById('notes-textarea');
+      const notesCharCount = document.getElementById('notes-char-count');
+      const notesToggleDesktop = document.getElementById('notes-toggle-desktop');
+      const notesCloseDesktop = document.getElementById('notes-close-desktop');
+      const notesToggleMobile = document.getElementById('notes-toggle-mobile');
+
+      let notesOverlay = document.getElementById('notes-overlay');
+      let currentFileName = '';
+      let isNotesOpen = false;
+      let isMobile = window.innerWidth <= 768;
+      const savedNotes = localStorage.getItem('notesContent');
+      const savedOpenState = localStorage.getItem('notesOpen') === 'true';
+
+      const handleUndo = () => { editor.undo?.(); markAsModified(); };
+      const handleRedo = () => { editor.redo?.(); markAsModified(); };
+
+      let hasModifications = false;
+
+      async function handleFile(file, isReplace = false) {
+        if (!file) return;
+
+        // Actualizar el input con el nombre del archivo
+        updateImageNameInput(file);
+
+        // Cargar la imagen como NO procesada
+        await editor.loadImage(file, false);
+        if (editor.getState().isProcessed === true) {
+          editor.setProcessed(false);
+          if (editor._state) editor._state.isProcessed = false;
+        }
+
+        fileInput.value = '';
+      }
+
+      function updateFloatingControls() {
+        const state = editor?.getState();
+        const hasImage = state?.file || state?.processedDataUrl;
+        if (brushControlsFloat && window.innerWidth > 768) {
+          brushControlsFloat.classList.toggle('hidden', !hasImage);
+          if (hasImage) {
+            brushControlsFloat.classList.add('fade-in');
+            setTimeout(() => brushControlsFloat.classList.remove('fade-in'), 200);
+          }
+        }
+      }
+
+      function updateExportButtonState() {
+        const state = editor?.getState();
+        const hasImage = state?.file || state?.processedDataUrl;
+        const isProcessed = state?.isProcessed;
+        const shouldShow = hasImage && (isProcessed || hasModifications);
+        if (btnExportNav) {
+          btnExportNav.classList.toggle('hidden', !shouldShow);
+          btnExportNav.disabled = !isProcessed;
+        }
+      }
+
+      function updateStatusIcon(status) {
+        if (!statusIcon) return;
+        statusIcon.classList.remove('check', 'spinner', 'error');
+        statusIcon.innerHTML = '';
+        switch (status) {
+          case 'ready':
+            statusIcon.innerHTML = '<circle cx="12" cy="12" r="8" stroke-width="2" />';
+            break;
+          case 'processing':
+            statusIcon.classList.add('spinner');
+            statusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />';
+            break;
+          case 'saved':
+            statusIcon.classList.add('check');
+            statusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />';
+            setTimeout(() => updateStatusIcon('ready'), 2000);
+            break;
+          case 'error':
+            statusIcon.classList.add('error');
+            statusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            setTimeout(() => updateStatusIcon('ready'), 3000);
+            break;
+        }
+      }
+
+      function markAsModified() {
+        hasModifications = true;
+        updateExportButtonState();
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        if (toast) {
+          toast.textContent = message;
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+      }
+
+      function setInitialToolButtonStyles() {
+        const tool = editor.getState().tool; // Debería ser 'erase'
+
+        // Botones flotantes desktop
+        const toolAddFloat = document.getElementById('tool-add-float');
+        const toolEraseFloat = document.getElementById('tool-erase-float');
+        if (toolAddFloat && toolEraseFloat) {
+          toolAddFloat.classList.toggle('btn-active', tool === 'add');
+          toolEraseFloat.classList.toggle('btn-active', tool === 'erase');
+        }
+
+        // Botones móviles
+        const mobileToolAdd = document.getElementById('mobile-tool-add');
+        const mobileToolErase = document.getElementById('mobile-tool-erase');
+        if (mobileToolAdd && mobileToolErase) {
+          mobileToolAdd.classList.toggle('btn-active', tool === 'add');
+          mobileToolErase.classList.toggle('btn-active', tool === 'erase');
+        }
+      }
+
+      function getFileNameWithoutExtension(file) {
+        if (!file) return 'sin_fondo';
+        const name = file.name;
+        const lastDot = name.lastIndexOf('.');
+        return lastDot > 0 ? name.substring(0, lastDot) : name;
+      }
+
+      function getFileExtension(file) {
+        if (!file) return 'png';
+        const lastDot = file.name.lastIndexOf('.');
+        return lastDot > 0 ? file.name.substring(lastDot + 1) : 'png';
+      }
+
+      function containsJabon(productName) {
+        if (!productName) return false;
+        return /jab[oó]n/i.test(productName);
+      }
+
+      // Función para actualizar el input con el nombre del archivo cargado
+      function updateImageNameInput(file) {
+        if (file && imageNameContainer && imageNameInput) {
+          const nameWithoutExt = getFileNameWithoutExtension(file);
+          const extension = getFileExtension(file);
+          currentFileName = nameWithoutExt;
+          imageNameInput.value = nameWithoutExt;
+          imageNameInput.placeholder = `${nameWithoutExt}.${extension}`;
+          imageNameContainer.classList.remove('hidden');
+
+          // Disparar la búsqueda de descripción basada en el nombre del archivo
+          if (containsJabon(nameWithoutExt)) updateNotesFromProductName(nameWithoutExt);
+
+        } else if (!file && imageNameContainer) {
+          imageNameContainer.classList.add('hidden');
+        }
+      }
+
+      function getFullImageName() {
+        const state = editor.getState();
+        const originalFile = state.file;
+        const extension = originalFile ? getFileExtension(originalFile) : 'png';
+        const customName = imageNameInput ? imageNameInput.value.trim() : '';
+        const finalName = customName || (originalFile ? getFileNameWithoutExtension(originalFile) : 'sin_fondo');
+        return `${finalName}.${extension}`;
+      }
+
+      function resetImageNameInput() {
+        if (imageNameContainer) imageNameContainer.classList.add('hidden');
+        if (imageNameInput) imageNameInput.value = '';
+        currentFileName = '';
+      }
+
+      function toggleNotes(open) {
+        isNotesOpen = open;
+
+        if (isMobile) {
+          // Modo móvil
+          if (open) {
+            notesContent.classList.add('open');
+            notesOverlay.classList.remove('hidden');
+            notesOverlay.style.display = 'block';
+            notesOverlay.style.pointerEvents = 'auto'; // Activar solo cuando está abierto
+            document.body.style.overflow = 'hidden';
+            const mobileIcon = document.getElementById('toggle-icon-mobile');
+            if (mobileIcon) mobileIcon.style.transform = 'rotate(180deg)';
+          } else {
+            notesContent.classList.remove('open');
+            notesOverlay.classList.add('hidden');
+            notesOverlay.style.display = 'none';
+            notesOverlay.style.pointerEvents = 'none'; // Desactivar cuando está cerrado
+            document.body.style.overflow = '';
+            const mobileIcon = document.getElementById('toggle-icon-mobile');
+            if (mobileIcon) mobileIcon.style.transform = 'rotate(0deg)';
+          }
+        } else {
+          // Modo escritorio
+          if (open) {
+            notesContent.style.width = '380px';
+            document.getElementById('toggle-icon-desktop').textContent = '>';
+            notesOverlay.classList.remove('hidden');
+            notesOverlay.style.display = 'block';
+            notesOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+          } else {
+            notesContent.style.width = '0px';
+            document.getElementById('toggle-icon-desktop').textContent = '<';
+            notesOverlay.classList.add('hidden');
+            notesOverlay.style.display = 'none';
+          }
+        }
+
+        if (open) {
+          const currentProductName = imageNameInput ? imageNameInput.value.trim() : '';
+          if (containsJabon(currentProductName)) {
+            fetchDescriptionFromName(currentProductName).then(description => {
+              if (description && notesTextarea.value !== description) {
+                notesTextarea.value = description;
+                notesCharCount.textContent = `${description.length} caracteres`;
+                localStorage.setItem('notesContent', description);
+              }
+            });
+          }
+        }
+
+        localStorage.setItem('notesOpen', open);
+      }
+
+      function handleClickOutside(event) {
+        if (!isNotesOpen) return;
+
+        const isClickInsideNotes = notesContent.contains(event.target);
+        const isClickOnToggleDesktop = notesToggleDesktop && notesToggleDesktop.contains(event.target);
+        const isClickOnToggleMobile = notesToggleMobile && notesToggleMobile.contains(event.target);
+
+        const isClickOnOverlay = notesOverlay && notesOverlay.contains(event.target) && !isClickInsideNotes;
+
+        if ((isClickOnOverlay || (!isClickInsideNotes && !isClickOnToggleDesktop && !isClickOnToggleMobile))) toggleNotes(false)
+      }
+
+      // Procesamiento automático de fondo
+      async function processImageAutomatically() {
+        const state = editor.getState();
+        if (!state.file) return;
+
+        updateStatusIcon('processing');
+
+        try {
+          const fd = new FormData();
+          fd.append('file', state.file);
+
+          const res = await fetch('/bg/remove', { method: 'POST', body: fd });
+          const data = await res.json();
+
+          if (!data.success) throw new Error(data.error);
+
+          editor.setProcessedDataUrl(data.image);
+
+          await editor.loadImage(data.image, true);
+
+          updateStatusIcon('ready');
+          updateExportButtonState();
+          showToast('✓ Fondo eliminado');
+
+        } catch (err) {
+          console.error('Error:', err);
+          showToast('✗ ' + err.message);
+          updateStatusIcon('error');
+        }
+      }
+
+      async function handleExport() {
+        const productName = document.getElementById('image-name-input')?.value.trim();
+        const description = document.getElementById('notes-textarea')?.value.trim();
+
+        // Obtener la imagen del canvas
+        const canvas = document.getElementById('canvas-main');
+        const productImage = canvas.toDataURL('image/png');
+
+        updateStatusIcon('processing');
+
+        try {
+          const response = await fetch('/jbn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nombre: productName,
+              descripcion: description,
+              product_image: productImage
+            })
+          });
+
+          const data = await response.json();  // ✅ await aquí
+
+          if (data.success && data.image_base64) {
+            const a = document.createElement('a');
+            a.href = data.image_base64;
+            a.download = data.filename || `${productName.replace(/ /g, '_')}.png`;
+            a.click();
+            showToast('✓ Rutina generada');
+            updateStatusIcon('saved');
+          } else {
+            throw new Error(data.error || 'Error desconocido');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('✗ ' + err.message);
+          updateStatusIcon('error');
+        }
+      }
+
+      // Función para enviar el nombre al endpoint /description
+      async function fetchDescriptionFromName(productName) {
+        if (!productName || productName.trim() === '') return '';
+
+        if (!containsJabon(productName)) return '';
+
+        try {
+          const response = await fetch('/description', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: productName.trim() })
+          });
+
+          if (!response.ok) {
+            console.log(response)
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          const description = data.description || data.text || data.message || '';
+
+          return description;
+        } catch (error) {
+          console.error('Error fetching description:', error);
+          return '';
+        }
+      }
+
+      // Función para actualizar las notas basado en el nombre del producto
+      async function updateNotesFromProductName(productName) {
+        const description = await fetchDescriptionFromName(productName);
+
+        if (description && description.trim() !== '') {
+          // Si hay descripción, actualizar el textarea y guardar en localStorage
+          notesTextarea.value = description;
+          notesCharCount.textContent = `${description.length} caracteres`;
+          localStorage.setItem('notesContent', description);
+
+          showToast('📝 Descripción cargada automáticamente');
+        } else if (containsJabon(productName)) {
+          notesTextarea.value = '';
+          notesCharCount.textContent = `0 caracteres`;
+          localStorage.setItem('notesContent', '');
+          showToast('⚠️ No se encontró descripción para este producto');
+        }
+      }
+
+
+      // Crear instancia del editor
+      const editor = MaskEditor.create({
+        originalCanvas: canvasOriginal,
+        maskCanvas: canvasMask,
+        mainCanvas: canvasMain,
+        callbacks: {
+          onToolChange: (tool) => {
+            // Solo actualizamos botones flotantes y móviles
+            if (toolAddFloat && toolEraseFloat) {
+              toolAddFloat.classList.toggle('btn-active', tool === 'add');
+              toolEraseFloat.classList.toggle('btn-active', tool === 'erase');
+            }
+            if (mobileToolAdd && mobileToolErase) {
+              mobileToolAdd.classList.toggle('btn-active', tool === 'add');
+              mobileToolErase.classList.toggle('btn-active', tool === 'erase');
+            }
+          },
+          onImageReady: async () => {  // ← Hazla async
+            if (zoomControls) zoomControls.classList.remove('hidden');
+            if (emptyState && canvasContainer) {
+              emptyState.classList.add('hidden');
+              canvasContainer.classList.remove('hidden');
+            }
+            if (btnReplace) {
+              btnReplace.classList.remove('hidden');
+              btnReplace.classList.add('fade-in');
+              setTimeout(() => btnReplace.classList.remove('fade-in'), 200);
+            }
+            updateFloatingControls();
+            if (!editor.getState().file && imageNameContainer) imageNameContainer.classList.add('hidden');
+            if (!editor.getState().isProcessed && editor.getState().file) await processImageAutomatically();
+          },
+          onBrushChange: (size) => {
+            // Sincronizar etiquetas si existen
+            const labelFloat = document.getElementById('brush-size-label-float');
+            if (labelFloat) labelFloat.textContent = `${size}px`;
+            const mobileLabel = document.getElementById('mobile-brush-label');
+            if (mobileLabel) mobileLabel.textContent = `${size}px`;
+          }
+        }
+      });
+
+      if (editor.getState().tool !== 'erase') editor.toggleTool();
+
+
+
+      if (canvasMain) {
+        let isDrawing = false;
+        const startDraw = () => { isDrawing = true; };
+        const endDraw = () => {
+          if (isDrawing) {
+            isDrawing = false;
+            markAsModified();
+          }
+        };
+        canvasMain.addEventListener('mousedown', startDraw);
+        canvasMain.addEventListener('mouseup', endDraw);
+        canvasMain.addEventListener('mouseleave', endDraw);
+        canvasMain.addEventListener('touchstart', startDraw, { passive: false });
+        canvasMain.addEventListener('touchend', endDraw);
+        canvasMain.addEventListener('touchcancel', endDraw);
+      }
+
+      window.editor = editor;
+
+      // Drag & drop / file input
+      if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        ['dragenter', 'dragover'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+          });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (evt === 'drop' && e.dataTransfer?.files?.[0]) {
+              handleFile(e.dataTransfer.files[0], false);
+            }
+            dropZone.classList.remove('drag-over');
+          });
+        });
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files?.[0]) {
+            const isReplace = !emptyState?.classList.contains('hidden');
+            handleFile(e.target.files[0], isReplace);
+          }
+        });
+      }
+
+      if (emptyState && fileInput) {
+        emptyState.style.cursor = 'pointer';
+        emptyState.addEventListener('click', () => fileInput.click());
+      }
+
+      if (canvasWrap) {
+        ['dragenter', 'dragover'].forEach(evt => {
+          canvasWrap.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            canvasContainer?.classList.add('drag-over-canvas');
+          });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+          canvasWrap.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            canvasContainer?.classList.remove('drag-over-canvas');
+            if (evt === 'drop' && e.dataTransfer?.files?.[0]) {
+              const file = e.dataTransfer.files[0];
+              if (file.type.startsWith('image/')) {
+                const hasImage = emptyState?.classList.contains('hidden');
+                handleFile(file, hasImage);
+              }
+            }
+          });
+        });
+      }
+
+      if (btnReplace) btnReplace.addEventListener('click', () => fileInput.click());
+
+      // Controles de pincel flotantes
+      if (brushSizeFloat) {
+        brushSizeFloat.addEventListener('input', (e) => {
+          const val = parseInt(e.target.value);
+          editor.setBrushSize(val);
+          if (brushSizeLabelFloat) brushSizeLabelFloat.textContent = `${val}px`;
+          const mobileSlider = document.getElementById('mobile-brush-size');
+          if (mobileSlider) mobileSlider.value = val;
+        });
+      }
+
+      // Controles móviles
+      if (mobileBrushSize && mobileBrushLabel) {
+        mobileBrushSize.addEventListener('input', (e) => {
+          const val = parseInt(e.target.value);
+          editor.setBrushSize(val);
+          mobileBrushLabel.textContent = `${val}px`;
+          if (brushSizeFloat) brushSizeFloat.value = val;
+          if (brushSizeLabelFloat) brushSizeLabelFloat.textContent = `${val}px`;
+        });
+        const initialSize = editor.getState()?.brushSize || 30;
+        mobileBrushSize.value = initialSize;
+        mobileBrushLabel.textContent = `${initialSize}px`;
+      }
+
+      if (mobileToolAdd) mobileToolAdd.addEventListener('click', () => { if (editor.getState().tool !== 'add') editor.toggleTool(); });
+
+      if (mobileToolErase) mobileToolErase.addEventListener('click', () => { if (editor.getState().tool !== 'erase') editor.toggleTool(); });
+
+      if (toolAddFloat) toolAddFloat.addEventListener('click', () => { if (editor.getState().tool !== 'add') editor.toggleTool(); });
+
+      if (toolEraseFloat) toolEraseFloat.addEventListener('click', () => { if (editor.getState().tool !== 'erase') editor.toggleTool(); });
+
+      btnUndo?.addEventListener('click', handleUndo);
+      btnRedo?.addEventListener('click', handleRedo);
+      mobileUndo?.addEventListener('click', handleUndo);
+      mobileRedo?.addEventListener('click', handleRedo);
+
+      if (btnExportNav) {
+        btnExportNav.addEventListener('click', async (e) => {
+          e.preventDefault();
+          await handleExport();
+        });
+      }
+
+      document.getElementById('zoom-in')?.addEventListener('click', () => editor.zoomIn());
+      document.getElementById('zoom-out')?.addEventListener('click', () => editor.zoomOut());
+      document.getElementById('zoom-reset')?.addEventListener('click', () => editor.zoomReset());
+
+      // Atajos de teclado (solo desktop)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isNotesOpen) toggleNotes(false);
+        if (window.innerWidth > 768) {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          if (e.ctrlKey && e.key === 'z') { e.preventDefault(); editor.undo?.(); markAsModified(); }
+          else if (e.ctrlKey && e.key === 'y') { e.preventDefault(); editor.redo?.(); markAsModified(); }
+          else if (e.key.toLowerCase() === 'e') { if (editor.getState().tool !== 'erase') editor.toggleTool(); }
+          else if (e.key.toLowerCase() === 'a') { if (editor.getState().tool !== 'add') editor.toggleTool(); }
+          else if (e.key === '+' || e.key === '=') { e.preventDefault(); editor.zoomIn(); }
+          else if (e.key === '-') { e.preventDefault(); editor.zoomOut(); }
+          else if (e.key === '0') { e.preventDefault(); editor.zoomReset(); }
+        }
+      });
+
+      setInitialToolButtonStyles();
+      updateFloatingControls();
+      if (brushSizeFloat && brushSizeLabelFloat) {
+        brushSizeFloat.value = editor.getState()?.brushSize || 30;
+        brushSizeLabelFloat.textContent = `${brushSizeFloat.value}px`;
+      }
+
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', async () => {
+          rotateBtn.classList.add('rotating');
+          await editor.rotateImage(90);
+          setTimeout(() => rotateBtn.classList.remove('rotating'), 500);
+          markAsModified();
+        });
+      }
+
+      if (imageNameInput) {
+        imageNameInput.addEventListener('keydown', (e) => e.stopPropagation());
+
+        imageNameInput.addEventListener('click', (e) => e.stopPropagation());
+
+        // Detectar cambios en el input para actualizar notas
+        let debounceTimer;
+        imageNameInput.addEventListener('input', (e) => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            const newName = e.target.value.trim();
+            if (containsJabon(newName)) updateNotesFromProductName(newName);
+          }, 500);
+        });
+      }
+
+      if (savedNotes) {
+        notesTextarea.value = savedNotes;
+        notesCharCount.textContent = `${savedNotes.length} caracteres`;
+      }
+
+      if (savedOpenState) setTimeout(() => toggleNotes(true), 100);
+      notesTextarea.addEventListener('input', () => {
+        const count = notesTextarea.value.length;
+        notesCharCount.textContent = `${count} caracteres`;
+        localStorage.setItem('notesContent', notesTextarea.value);
+      });
+
+      if (notesToggleDesktop) notesToggleDesktop.addEventListener('click', () => { toggleNotes(!isNotesOpen); });
+
+      if (notesCloseDesktop) notesCloseDesktop.addEventListener('click', () => { toggleNotes(false); });
+
+      // Eventos móvil
+      if (notesToggleMobile) notesToggleMobile.addEventListener('click', () => { toggleNotes(!isNotesOpen); });
+
+      if (!notesOverlay) {
+        notesOverlay = document.createElement('div');
+        notesOverlay.id = 'notes-overlay';
+        notesOverlay.className = 'fixed inset-0 bg-black/50 z-25 hidden transition-opacity';
+        notesOverlay.style.display = 'none';
+        document.body.appendChild(notesOverlay);
+      }
+
+      document.addEventListener('click', handleClickOutside);
+
+      window.addEventListener('beforeunload', () => editor.destroy());
+      window.addEventListener('resize', () => {
+        const wasMobile = isMobile;
+        isMobile = window.innerWidth <= 768;
+
+        if (wasMobile !== isMobile && isNotesOpen) toggleNotes(false);
+      });
+    });
+  </script>
+</body>
+
+</html>

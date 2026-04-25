@@ -1,0 +1,45 @@
+services:
+  bg-remover:
+    build: .
+    container_name: bg-remover
+    ports:
+      - "8000:8000"
+    volumes:
+      # Montar todo el código fuente para desarrollo (hot-reload)
+      - ./controller:/app/controller
+      - ./main.py:/app/main.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./logs:/app/logs
+      
+      # Persistir caché del modelo para evitar redescargas
+      - rembg-cache:/root/.u2net
+      
+      # Persistir caché de Playwright (opcional, mejora rendimiento)
+      - playwright-cache:/root/.cache/ms-playwright
+      
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Variables de entorno para desarrollo
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - RENDER_WIDTH=${RENDER_WIDTH:-920}
+      - RENDER_HEIGHT=${RENDER_HEIGHT:-380}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Para debugging
+    stdin_open: true
+    tty: true
+
+volumes:
+  rembg-cache:
+    driver: local
+  playwright-cache:
+    driver: local

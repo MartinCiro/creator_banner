@@ -42,8 +42,13 @@ class Config:
             background_color=getenv("BG_COLOR", "#fdf6f6")
         )
 
+        # 🔹 Gemini settings
+        self.gemini_api_key = getenv("GEMINI_API_KEY")
+        self.gemini_model = getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+
     def __repr__(self):
         return (
             f"<Config render=({self.render.width}x{self.render.height}), "
-            f"output='{self.render.output_dir}'>"
+            f"output='{self.render.output_dir}', "
+            f"gemini_model='{self.gemini_model}'>"
         )
