@@ -199,7 +199,8 @@ graph TB
 
 ### Flujo completo (de la imagen al PNG final)
 
-```mermaidsequenceDiagram
+```mermaid
+sequenceDiagram
     autonumber
     actor U as 👤 Usuario
     participant W as 🌐 editor.html
