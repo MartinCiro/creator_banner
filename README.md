@@ -199,8 +199,7 @@ graph TB
 
 ### Flujo completo (de la imagen al PNG final)
 
-```mermaid
-sequenceDiagram
+```mermaidsequenceDiagram
     autonumber
     actor U as 👤 Usuario
     participant W as 🌐 editor.html
@@ -214,7 +213,7 @@ sequenceDiagram
     W->>A: POST /bg/remove (imagen)
     A->>R: remove(image_bytes)
     R-->>A: PNG sin fondo
-    A-->>W: data:image/png;base64,...
+    A-->>W: data:image/png#59;base64,...
 
     Note over W: Carga en MaskEditor<br/>(original, mask, main)
 
@@ -222,7 +221,7 @@ sequenceDiagram
     W->>A: POST /bg/apply-mask (original + mask)
     A->>R: apply_mask(original, mask)
     R-->>A: PNG compuesto
-    A-->>W: data:image/png;base64,...
+    A-->>W: data:image/png#59;base64,...
 
     alt Nombre contiene "jabón"
         W->>A: POST /description (nombre)
